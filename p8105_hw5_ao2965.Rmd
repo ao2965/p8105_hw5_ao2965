@@ -90,7 +90,7 @@ power_plot = power_summary |>
 power_plot
 ```
 
-
+As effect size increases power incrrwase in the plot. after reaching 4 it plateaus
 
 
 `````{r estimates-plot-faceted}
@@ -122,3 +122,15 @@ estimates_plot = power_summary |>
 
 estimates_plot
 `````
+
+
+* The sample average of μ̂ across tests where the null was rejected is NOT approximately 
+equal to the true μ, especially for small effect sizes. 
+
+For μ = 0, the average estimate among rejected samples is ~0.4 (not 0), showing 
+substantial upward bias. This bias decreases as μ increases, nearly disappearing 
+by μ = 5-6.
+
+This occurs because when the true effect is small, we only reject the null when 
+random variation produces unusually large estimates. This selection bias disappears 
+as power increases because nearly all samples lead to rejection.
