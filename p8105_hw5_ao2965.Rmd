@@ -125,12 +125,50 @@ estimates_plot
 
 
 * The sample average of μ̂ across tests where the null was rejected is NOT approximately 
-equal to the true μ, especially for small effect sizes. 
-
-For μ = 0, the average estimate among rejected samples is ~0.4 (not 0), showing 
-substantial upward bias. This bias decreases as μ increases, nearly disappearing 
-by μ = 5-6.
-
-This occurs because when the true effect is small, we only reject the null when 
-random variation produces unusually large estimates. This selection bias disappears 
+equal to the true μ, especially for small effect sizes.  This occurs because when the true effect is small, we only reject the null when random variation produces unusually large estimates. This selection bias disappears 
 as power increases because nearly all samples lead to rejection.
+
+# Problem 3
+
+### Raw data
+```{r, message=FALSE}
+homicide_data = read_csv("homicide-data.csv")
+
+n_obs = nrow(homicide_data)
+n_vars = ncol(homicide_data)
+var_names = names(homicide_data) |> str_c(collapse = ", ")
+```
+
+* The Washington Post homicide dataset contains `r format(n_obs, big.mark = ",")` observations 
+and `r n_vars` variables. The variables included are: `r var_names`.
+
+### Create city_state variable and summarize
+
+```{r}
+homicide_summary = homicide_data |> 
+  mutate(
+    city_state = str_c(city, ", ", state),
+    city_state = str_replace(city_state, "Milwaukee, wI", "Milwaukee, WI"),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest" ~ "unsolved", 
+      disposition == "Closed by arrest" ~ "solved"
+    )
+  ) |> 
+  filter(city_state != "Tulsa, AL") |> 
+  group_by(city_state) |> 
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(resolution == "unsolved"),
+    .groups = "drop"
+  )
+
+homicide_summary |> 
+  arrange(desc(total_homicides))
+
+homicide_summary |> 
+  arrange(desc(unsolved_homicides))
+```
+* After summarizing the total number of homicides, we see that the 5 cities with the highest number of total homicides are Chicago, Philadelphia, Houston, Baltimore, Detroit.
+
+* After summarizing the total number of unsolved_homicides, we see that the 5 cities with the highest number of total unsolved_homicides are Chicago, Baltimore, Houston, Detroit, Philadelphia.
