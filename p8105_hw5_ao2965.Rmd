@@ -14,14 +14,13 @@ theme_set(theme_minimal())
 
 # Problem 2
 
-
+### Running the simulations
 ```{r run-simulations, cache=TRUE}
 n = 30
 sigma = 5
 alpha = 0.05
 n_sim = 5000
 
-# Simulation function
 sim_t_test = function(mu, n = 30, sigma = 5) {
   sim_data = rnorm(n, mean = mu, sd = sigma)
   test = t.test(sim_data, mu = 0)
@@ -62,6 +61,7 @@ sim_results = bind_rows(
 
 ```
 
+### Generating the power summary and plot
 ```{r }
 power_summary = sim_results |> 
   group_by(mu_true) |> 
@@ -90,9 +90,9 @@ power_plot = power_summary |>
 power_plot
 ```
 
-As effect size increases power incrrwase in the plot. after reaching 4 it plateaus
+* As effect size increases, power increases in the plot. This indicates a positive association between them. There is a steep increase in power when the true value of μ increases from 1 to 4. After reaching 4, the association plateaus
 
-
+### Second plot
 `````{r estimates-plot-faceted}
 estimates_plot = power_summary |> 
   select(mu_true, avg_estimate_all, avg_estimate_rejected) |> 
@@ -124,10 +124,8 @@ estimates_plot
 `````
 
 
-* The sample average of μ̂ across tests where the null was rejected is NOT approximately 
-equal to the true μ, especially for small effect sizes.  This occurs because when the true effect is small, we only reject the null when random variation produces unusually large estimates. This selection bias disappears 
-as power increases because nearly all samples lead to rejection.
-
+* The sample average of μ̂ across tests where the null was rejected is not approximately equal to the true μ, especially for small effect sizes.  This occurs because when the true effect is small, we only reject the null when random variation produces unusually large estimates. This selection bias disappears as power increases because nearly all samples lead to rejection.
+ 
 # Problem 3
 
 ### Raw data
@@ -172,3 +170,64 @@ homicide_summary |>
 * After summarizing the total number of homicides, we see that the 5 cities with the highest number of total homicides are Chicago, Philadelphia, Houston, Baltimore, Detroit.
 
 * After summarizing the total number of unsolved_homicides, we see that the 5 cities with the highest number of total unsolved_homicides are Chicago, Baltimore, Houston, Detroit, Philadelphia.
+
+### Baltimore prop.test
+`````{r}
+run_prop_test = function(unsolved, total) {
+  test = prop.test(x = unsolved, n = total)
+  broom::tidy(test) |> 
+    select(estimate, conf.low, conf.high)
+}
+baltimore_data = homicide_summary |> 
+  filter(city_state == "Baltimore, MD")
+
+baltimore_results = run_prop_test(
+  unsolved = baltimore_data |> pull(unsolved_homicides),
+  total = baltimore_data |> pull(total_homicides)
+)
+baltimore_results
+`````
+
+### All cities prop.test
+
+```{r}
+all_cities = homicide_summary |> 
+  mutate(
+    test_results = map2(
+      unsolved_homicides, 
+      total_homicides, 
+      run_prop_test
+    )
+  ) |> 
+  unnest(test_results)
+
+all_cities
+```
+### Create Plot
+```{r, fig.height=10, fig.width=8}
+homicide_plot = all_cities |> 
+  mutate(city_state = fct_reorder(city_state, estimate)) |> 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point(size = 2, color = "darkblue") +
+  geom_errorbar(
+    aes(ymin = conf.low, ymax = conf.high),
+    width = 0.3,
+    alpha = 0.7
+  ) +
+  coord_flip() +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  labs(
+    title = "Proportion of Unsolved Homicides by City",
+    subtitle = "Error bars represent 95% confidence intervals",
+    x = "",
+    y = "Proportion of Unsolved Homicides"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 7),
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 10)
+  )
+
+homicide_plot
+```
